@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Map Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .map {
+            background-color: #e6f2ff;
+            border: 2px solid #b3d9ff;
+            border-radius: 8px;
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+        .pin {
+            position: absolute;
+            font-size: 24px;
+        }
+        .pin-origin {
+            top: 40%;
+            left: 20%;
+            color: #ff4d4d;
+        }
+        .pin-destination {
+            top: 40%;
+            right: 20%;
+            color: #33cc33;
+        }
+        .line {
+            position: absolute;
+            top: 50%;
+            left: 25%;
+            right: 25%;
+            height: 2px;
+            background-color: #666;
+        }
+        .distance {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+        .info {
+            margin-top: 20px;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .info-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .origin-color { background-color: #ff4d4d; }
+        .destination-color { background-color: #33cc33; }
+        .distance-color { background-color: #666; }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            .map {
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Travel Map</h1>
+        <div class="map">
+            <div class="pin pin-origin" title="Origin">📍</div>
+            <div class="pin pin-destination" title="Destination">📍</div>
+            <div class="line"></div>
+            <div class="distance" id="distance"></div>
+        </div>
+        <div class="info">
+            <div class="info-item">
+                <div class="info-color origin-color"></div>
+                <span>Origin: <span id="origin"></span></span>
+            </div>
+            <div class="info-item">
+                <div class="info-color destination-color"></div>
+                <span>Destination: <span id="destination"></span></span>
+            </div>
+            <div class="info-item">
+                <div class="info-color distance-color"></div>
+                <span>Distance: <span id="distance-info"></span></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cities = {
+            "New York": { lat: 40.7128, lon: -74.0060 },
+            "Los Angeles": { lat: 34.0522, lon: -118.2437 },
+            "Chicago": { lat: 41.8781, lon: -87.6298 },
+            "Houston": { lat: 29.7604, lon: -95.3698 },
+            "Phoenix": { lat: 33.4484, lon: -112.0740 }
+        };
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return Math.round(distance * 0.621371); // Convert to miles and round
+        }
+
+        function updateMap() {
+            const cityNames = Object.keys(cities);
+            const originIndex = Math.floor(Math.random() * cityNames.length);
+            let destinationIndex;
+            do {
+                destinationIndex = Math.floor(Math.random() * cityNames.length);
+            } while (destinationIndex === originIndex);
+
+            const origin = cityNames[originIndex];
+            const destination = cityNames[destinationIndex];
+            const distance = calculateDistance(
+                cities[origin].lat, cities[origin].lon,
+                cities[destination].lat, cities[destination].lon
+            );
+
+            document.getElementById('origin').textContent = origin;
+            document.getElementById('destination').textContent = destination;
+            document.getElementById('distance').textContent = `${distance} miles`;
+            document.getElementById('distance-info').textContent = `${distance} miles`;
+        }
+
+        updateMap();
+        setInterval(updateMap, 5000); // Update every 5 seconds
+    </script>
+</body>
+</html>
