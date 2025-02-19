@@ -1,100 +1,51 @@
+from ultralytics import YOLO
+import torch
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+from google.colab.patches import cv2_imshow  
 
-# Load YOLO
-net = cv2.dnn.readNet("C:/Users/kanak/Downloads/Buzz Earth/yolov3.weights", "C:/Users/kanak/Downloads/Buzz Earth/yolov3.cfg")
-with open("C:/Users/kanak/Downloads/Buzz Earth/archive/vehicle dataset/classes.txt", encoding="utf-8") as f:
-    classes = [line.strip() for line in f.readlines()]
-layer_names = net.getLayerNames()
-output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
 
-# Initialize video capture (use your video source, e.g., 'video.mp4' or 0 for webcam)
-cap = cv2.VideoCapture("C:/Users/kanak/Downloads/Buzz Earth/2103099-uhd_3840_2160_30fps.mp4")
+model = YOLO("yolov8n.pt").to(device)
 
-# Function to draw grid on the frame
-def draw_grid(frame, rows, cols):
-    height, width, _ = frame.shape
-    for i in range(1, rows):
-        cv2.line(frame, (0, i * height // rows), (width, i * height // rows), (255, 255, 255), 1)
-    for j in range(1, cols):
-        cv2.line(frame, (j * width // cols, 0), (j * width // cols, height), (255, 255, 255), 1)
+cap = cv2.VideoCapture("/content/2103099-uhd_3840_2160_30fps.mp4")
 
-# Function to detect and count vehicles
-def detect_and_count(frame):
-    height, width, _ = frame.shape
-    blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-    net.setInput(blob)
-    outputs = net.forward(output_layers)
+frame_width = int(cap.get(3))
+frame_height = int(cap.get(4))
+fps = int(cap.get(cv2.CAP_PROP_FPS))
 
-    class_ids = []
-    confidences = []
-    boxes = []
-    
-    # Process detections
-    for output in outputs:
-        for detection in output:
-            scores = detection[5:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
-            if confidence > 0.7:  # Adjust confidence threshold as needed
-                center_x = int(detection[0] * width)
-                center_y = int(detection[1] * height)
-                w = int(detection[2] * width)
-                h = int(detection[3] * height)
+out = cv2.VideoWriter("output.mp4", cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height))
 
-                # Rectangle coordinates
-                x = int(center_x - w / 2)
-                y = int(center_y - h / 2)
-
-                boxes.append([x, y, w, h])
-                confidences.append(float(confidence))
-                class_ids.append(class_id)
-
-    indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)  # Apply non-max suppression
-
-    vehicle_count = 0
-    for i in range(len(boxes)):
-        if i in indexes:
-            x, y, w, h = boxes[i]
-            # Ensure the class_id is valid
-            if class_ids[i] < len(classes):
-                label = str(classes[class_ids[i]])
-                if label in ["car", "threewheel", "bus", "truck", "motorbike", "van"]:  # Specify vehicle classes
-                    vehicle_count += 1
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Draw bounding box
-                    cv2.putText(frame, label, (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-    return vehicle_count
-
-# Main loop
-while True:
+while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
 
-    # Resize the frame while maintaining aspect ratio
-    height, width = frame.shape[:2]
-    aspect_ratio = width / height
-    new_width = 640
-    new_height = int(new_width / aspect_ratio)
-    
-    # Resize the entire frame
-    frame = cv2.resize(frame, (new_width, new_height))
+    results = model(frame, device=device)  
+    vehicle_count = len(results[0].boxes)
 
-    draw_grid(frame, 4, 4)  # Adjust grid size (rows, cols)
-    vehicle_count = detect_and_count(frame)
-    
-    # Logic for triggering traffic signal
-    if vehicle_count > 10:  # Change threshold based on your requirements
-        cv2.putText(frame, "GREEN LIGHT", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    else:
-        cv2.putText(frame, "RED LIGHT", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    for r in results:
+        for box in r.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])  
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    cv2.imshow("Frame", frame)
+    cv2.putText(frame, f"Vehicles: {vehicle_count}", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    out.write(frame)
 
-# Release resources
+    # Convert BGR to RGB for displaying in Colab
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    plt.imshow(frame_rgb)
+    plt.axis("off")
+    plt.show()
+
 cap.release()
+out.release()
 cv2.destroyAllWindows()
+
+# Download the video file
+from google.colab import files
+files.download("output.mp4")
+
