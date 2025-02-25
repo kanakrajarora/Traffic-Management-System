@@ -3,7 +3,7 @@
 This project is an AI-based traffic management solution aimed at optimizing traffic flow using real-time vehicle detection, distance calculations, and route optimization. It integrates with existing traffic systems and public transport networks to reduce congestion and enhance urban mobility.
 
 ## **Overview**
-This system uses the YOLOv3 object detection model to identify and count vehicles from video feeds, adjusting traffic signals dynamically based on traffic density. Additionally, the system calculates distances  optimizes routes using graph-based algorithms like Dijkstra or A*.
+This system uses the YOLOv3 object detection model to identify and count vehicles from video feeds, adjusting traffic signals dynamically based on traffic density. Additionally, the system calculates distances  optimizes routes using graph-based algorithms like Dijkstra or A*..
 
 ## **Key Features**
 - **Real-time Vehicle Detection**
